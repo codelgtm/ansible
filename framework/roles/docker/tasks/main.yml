@@ -1,0 +1,57 @@
+---
+
+- name: Check if docker already installed
+  shell: which docker || echo "false"
+  register: docker_found
+
+- name: Install docker prerequisite packages
+  apt:
+    name: "{{ packages }}"
+  vars:
+    packages:
+    - apt-transport-https
+    - ca-certificates
+    - curl
+    - software-properties-common
+  when: docker_found.stdout == "false"
+    
+- name: Add the GPG key for the official Docker repository
+  apt_key:
+    url: '{{ docker_repo_gpg_key }}'
+    state: present
+  when: docker_found.stdout == "false"
+
+- name: Add the Docker repository to APT sources
+  apt_repository:
+    repo: '{{ docker_reps }}'
+    state: present
+  when: docker_found.stdout == "false"
+
+- name: Update the package database with the Docker packages from the newly added repo
+  apt:
+    update_cache: yes
+  when: docker_found.stdout == "false"
+
+- name: Install docker
+  apt:
+    name: '{{ docker_pkg }}'
+    state: present
+  when: docker_found.stdout == "false"
+
+- name: Enable docker service to start on reboot
+  service:
+    name: docker
+    enabled: yes
+  when: docker_found.stdout == "false"
+    
+- name: Create docker group
+  group:
+    name: docker
+  when: docker_found.stdout == "false"
+
+- name: Add {{ ops_user }} user to docker group
+  user:
+    name: '{{ ops_user }}'
+    groups: docker
+    append: yes
+  when: docker_found.stdout == "false"

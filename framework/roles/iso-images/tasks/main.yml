@@ -1,0 +1,4 @@
+---
+
+- name: Copy iso images from GSA (this task takes minutes to complete)
+  raw: mkdir -p /root/deployment-disk-images; sshpass -p "{{ lookup('env','gsa_password') }}" scp -o "StrictHostKeyChecking no" -r "{{ lookup('env','gsa_id') }}"@rtpgsa.ibm.com:projects/u/unitycontent/cem/datalayer-deployment-disk-images/"{{ lookup('env','iso_images_folder') }}"/* /root/deployment-disk-images

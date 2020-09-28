@@ -1,0 +1,11 @@
+---
+  
+- import_tasks: install_asmcore.yml
+  become: yes
+  tags: install_asmcore
+
+- import_tasks: verify_install.yml
+  become: yes
+  become_user: opsadmin
+  tags: verify_asmcore
+

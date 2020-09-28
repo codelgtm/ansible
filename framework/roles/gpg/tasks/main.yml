@@ -1,0 +1,10 @@
+---
+
+- name: Create gpg.asc file to store the appid private gpg key
+  raw: echo "{{ lookup('env','appid_private_gpg_key') }}" | sed -e "s/-----BEGIN PGP PRIVATE KEY BLOCK----- \(.*\) -----END PGP PRIVATE KEY BLOCK-----/\1/" | tr " " "\n" | sed "1i-----BEGIN PGP PRIVATE KEY BLOCK-----\n" | sed "\$a-----END PGP PRIVATE KEY BLOCK-----" > /tmp/gpg.asc
+
+- name: Import the private gpg key
+  raw: gpg --import /tmp/gpg.asc
+  
+- name: Remove the private gpg key
+  raw: rm -rf /tmp/gpg.asc

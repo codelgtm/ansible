@@ -1,0 +1,15 @@
+---
+
+- name: "Login Docker before pulling images"
+  shell: docker login netcool-sae-docker-local.artifactory.swg-devops.com -u "{{ lookup('env', 'docker_username') }}" -p "{{ lookup('env', 'docker_password') }}"
+  become: true
+
+- name: "Pull pushgateway image"
+  shell: docker pull netcool-sae-docker-local.artifactory.swg-devops.com/netcool-sae/pushgateway
+  become: true
+
+- name: "Start pushgateway container"
+  shell: docker run -d -p 9091:9091 --name=pushgateway-test netcool-sae-docker-local.artifactory.swg-devops.com/netcool-sae/pushgateway
+
+- name: "Wait for 20s to alert prometheus of the pushgateway"
+  wait_for: timeout=20

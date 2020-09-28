@@ -1,0 +1,29 @@
+# configuration
+work_dir: "/etc/sonar_setup"
+
+# deployment type
+# development - will generate self signed ssl certificates and no IBMid/w3ID auth
+# production - uses ssl certificates from vault (w3ID auth will need to be manually setup)
+deploy_type: "{{ lookup('env', 'DEPLOY_TYPE') }}"
+
+# https certificate files lookup
+ssl_certificate_key_filepath: "{{ lookup('env', 'SSL_CERT_KEY' ) }}"
+ssl_certificate_value_filepath: "{{ lookup('env', 'SSL_CERT_VALUE' ) }}"
+
+# PostgreSQL
+postgres_version: 12.3
+postgres_container: sonar_postgres
+postgres_port: 5432
+postgres_user: "{{ lookup('env', 'POSTGRES_USER' ) }}"
+postgres_password: "{{ lookup('env', 'POSTGRES_PASSWORD' ) }}"
+
+# SonarQube
+app: sonar
+sonarqube_version: 8.3.1-community
+sonarqube_container: sonarqube
+sonarqube_port: 9000
+sonarqube_prometheus_exporter: sonar-prometheus-exporter-1.0.0-SNAPSHOT.jar
+
+# Nginx
+nginx_version: 1.19.0
+nginx_container: reverse_proxy

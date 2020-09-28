@@ -1,0 +1,21 @@
+#
+# Setup ssh key access
+#
+---
+
+- name: Create .ssh directory for the {{ ops_user }} user
+  file:
+    path: "/home/{{ ops_user }}/.ssh"
+    mode: 0700
+    group: '{{ ops_user }}'
+    owner: '{{ ops_user }}'
+    state: directory
+
+- name: Copy authorised keys into .ssh directory for {{ ops_user }} user
+  copy:
+    dest: /home/{{ ops_user }}/.ssh/authorized_keys
+    src: /root/.ssh/authorized_keys
+    group: '{{ ops_user }}'
+    owner: '{{ ops_user }}'
+    mode: 0600
+    remote_src: true

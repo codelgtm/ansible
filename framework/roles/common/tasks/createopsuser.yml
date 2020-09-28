@@ -1,0 +1,22 @@
+#
+# Create admin user & group
+#
+---
+- name: Create {{ ops_user }} group
+  group:
+    name: '{{ ops_user }}'
+
+- name: Create {{ ops_user }} user
+  user:
+    name: '{{ ops_user }}'
+    group: '{{ ops_user }}'
+    shell: /bin/bash
+
+- name: Lock password for the {{ ops_user }} user
+  command: passwd -l '{{ ops_user }}'
+
+- name: Ensure the {{ ops_user }} user can sudo
+  lineinfile:
+    dest: /etc/sudoers
+    line: "%{{ ops_user }}        ALL=(ALL)       NOPASSWD: ALL"
+

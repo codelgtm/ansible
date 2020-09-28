@@ -1,0 +1,55 @@
+#
+# Setup requirements for git and vault access, and also root login required for certain jenkins job
+#
+---
+
+- name: Backup the original ssh private key
+  copy:
+    src: ~/.ssh/id_rsa
+    dest: ~/.ssh/id_rsa.bkp
+
+- name: Backup the original ssh public key
+  copy:
+    src: ~/.ssh/id_rsa.pub
+    dest: ~/.ssh/id_rsa.pub.bkp
+
+- name: Update id_rsa file with app id private ssh key
+  remote_user: ansibleuser
+  become: true
+  raw: echo "{{ lookup('env','appid_private_ssh_key') }}" | sed -e "s/-----BEGIN RSA PRIVATE KEY----- \(.*\) -----END RSA PRIVATE KEY-----/\1/" | tr " " "\n" | sed "1i-----BEGIN RSA PRIVATE KEY-----" | sed "\$a-----END RSA PRIVATE KEY-----" > ~/.ssh/id_rsa
+
+- name: Update id_rsa.pub file with app id public ssh key
+  remote_user: ansibleuser
+  become: true
+  lineinfile:
+    dest: ~/.ssh/id_rsa.pub
+    line: "{{ lookup('env','appid_public_ssh_key') }}"
+    regexp: "^\\s*ssh-rsa"
+
+- name: Append app id public ssh key to the authorized keys file
+  remote_user: ansibleuser
+  become: true
+  raw: echo "{{ lookup('env','appid_public_ssh_key') }}" >> ~/.ssh/authorized_keys
+
+- name: Append Vault IP hostname resolution to the /etc/hosts file
+  remote_user: ansibleuser
+  become: true
+  raw: echo "{{ lookup('env','vault_ip') }} {{ lookup('env','vault_hostname') }} {{ lookup('env','vault_hostname_short') }}" >> /etc/hosts
+
+- name: Allow root access
+  remote_user: ansibleuser
+  become: true
+  lineinfile:
+    dest: /etc/ssh/sshd_config
+    line: "PermitRootLogin yes"
+    regexp: "^\\s*PermitRootLogin"
+
+- name: Restart sshd
+  remote_user: ansibleuser
+  become: true
+  command: systemctl restart sshd.service
+
+- name: Unlock password for root
+  remote_user: ansibleuser
+  become: true
+  command: passwd -u root

@@ -1,0 +1,20 @@
+---
+
+- name: "Setup full HA prometheus main config"
+  template:
+    src: prometheus.yml
+    dest: ~/prometheus/prometheus.yml
+
+- name: "Replace with standalone prometheus main config if flag is set"
+  template:
+    src: single-prometheus.yml
+    dest: ~/prometheus/prometheus.yml
+  when: lookup('env', 'single') == "true"
+
+- name: "Replace replica label if not A"
+  replace:
+    path: ~/prometheus/prometheus.yml
+    regexp: 'replica: A'
+    replace: 'replica: B'
+    backup: no
+  when: ansible_default_ipv4.address == lookup('env', 'replica_b_ip')

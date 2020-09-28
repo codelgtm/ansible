@@ -1,0 +1,36 @@
+---
+
+- name: Install git
+  apt:
+    name: git
+    state: latest
+    
+- stat:
+    path: "/{{ ops_user }}/.ssh/config"
+  register: p
+
+- name: create ssh config file if it doesn't already exist
+  file:
+    path: "/home/{{ ops_user }}/.ssh/config"
+    owner: "{{ ops_user }}"
+    group: "{{ ops_user }}"
+    mode: 0600
+    state: '{{ "file" if  p.stat.exists else "touch" }}'
+    
+- name: add git key to {{ ops_user }} ssh config file
+  lineinfile: 
+    dest: /home/{{ ops_user }}/.ssh/config
+    backup: yes
+    line: "IdentityFile ~/.ssh/id_rsa_git"
+
+- name: create the id_rsa_git file for the {{ ops_user }} user
+  file:
+    path: "/home/{{ ops_user }}/.ssh/id_rsa_git"
+    owner: "{{ ops_user }}"
+    group: "{{ ops_user }}"
+    mode: 0600
+    state: touch
+
+- name: Update id_rsa file with app id private ssh key
+  raw: echo "{{ lookup('env','appid_private_ssh_key') }}" | sed -e "s/-----BEGIN RSA PRIVATE KEY----- \(.*\) -----END RSA PRIVATE KEY-----/\1/" | tr " " "\n" | sed "1i-----BEGIN RSA PRIVATE KEY-----" | sed "\$a-----END RSA PRIVATE KEY-----" >  /home/{{ ops_user }}/.ssh/id_rsa_git
+  
