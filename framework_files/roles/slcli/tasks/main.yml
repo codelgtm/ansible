@@ -1,0 +1,13 @@
+---
+
+- name: Install SoftLayer package with pip2
+  pip:
+    name: SoftLayer
+    state: latest
+    executable: pip
+
+- name: Install SoftLayer package with pip3
+  pip:
+    name: SoftLayer
+    state: latest
+    executable: pip3

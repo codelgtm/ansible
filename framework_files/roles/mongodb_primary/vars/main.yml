@@ -1,0 +1,27 @@
+# configuration
+work_dir: "/etc/mongodb_setup"
+
+# deployment type
+# development - will generate self signed ssl certificates and no IBMid/w3ID auth
+# production - uses tls certificates from vault (will need to be manually setup)
+deploy_type: "{{ lookup('env', 'DEPLOY_TYPE') }}"
+
+# lookup for security specifications
+keyfile: "{{ lookup('env', 'KEYFILE') }}"
+tls_ca_cert_filepath: "{{ lookup('env', 'TLS_CA_CERT') }}"
+db_admin_user: "{{ lookup('env', 'DB_ADMIN_USER') }}"
+db_admin_pass: "{{ lookup('env', 'DB_ADMIN_PASS') }}"
+replica_admin_user: "{{ lookup('env', 'REPLICA_ADMIN_USER') }}"
+replica_admin_pass: "{{ lookup('env', 'REPLICA_ADMIN_PASS') }}"
+
+# MongoDB
+app: mongodb
+version: 4.4
+mongo_port: 27017
+replica_set: rs1
+vol_db: mongo_db
+vol_configdb: mongo_configdb
+vol_etc: mongo_etc
+dir_keyfile: /mongo/keyfile
+dir_admin: /mongo/admin
+dir_tls: /mongo/tls

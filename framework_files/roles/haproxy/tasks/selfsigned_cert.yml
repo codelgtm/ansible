@@ -1,0 +1,29 @@
+---
+
+- name: "Install pre-requisite Python library pyOpenSSL"
+  become: true
+  shell: pip install pyOpenSSL
+
+- name: "Generate the private key file to sign the CSR"
+  openssl_privatekey:
+    path: "{{ keypath }}"
+    size: 2048
+
+- name: "Generate the CSR file signed with the private key"
+  openssl_csr:
+    path: "{{ csrpath }}"
+    privatekey_path: "{{ keypath }}"
+    common_name: "{{ lookup('env', 'dnsname') }}"
+
+- name: "Sign the CSR file as a CA to turn it into a certificate"
+  openssl_certificate:
+    path: "{{ crtpath }}"
+    privatekey_path: "{{ keypath }}"
+    csr_path: "{{ csrpath }}"
+    provider: selfsigned
+
+- name: "Combine key and crt to pem"
+  shell: cat "{{ crtpath }}" "{{ keypath }}" > "{{ pempath }}"
+
+- name: "Remove temp files"
+  shell: rm -rf "{{ crtpath }}" "{{ keypath }}" "{{ csrpath }}"

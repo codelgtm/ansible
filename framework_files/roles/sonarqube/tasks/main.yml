@@ -1,0 +1,118 @@
+---
+
+- name: Print deployment type for {{ app }}
+  debug:
+    msg:
+      - "Performing {{ app }}-{{ deploy_type }} deployment on host {{ ansible_default_ipv4.address }}"
+
+- name: Update max virtual memory to pass bootstrap checks
+  shell: sysctl -w vm.max_map_count=262144
+  become: true
+
+- name: Install latest openjdk-11-jdk
+  apt:
+    name: openjdk-11-jdk
+    state: latest
+
+- name: Ensures {{ work_dir }} dir exists
+  file:
+    path: "{{ work_dir }}"
+    state: directory
+
+- name: Generate development SSL certificate key
+  shell: "openssl req -nodes -newkey rsa:2048 -keyout {{ work_dir }}/{{ app }}.key -out {{ work_dir }}/{{ app }}.csr -subj '/C=US/ST=RTP/L=RTP/O=Global Security/OU=IBM Department/CN=IBM'"
+  when: deploy_type == "development"
+
+- name: Generate development SSL certificate
+  shell: "openssl x509 -req -days 365 -in {{ work_dir }}/{{ app }}.csr -signkey {{ work_dir }}/{{ app }}.key -out {{ work_dir }}/{{ app }}.crt"
+  when: deploy_type == "development"
+
+- name: Save production {{ app }} ssl certificate key
+  copy:
+    content: "{{ lookup('file', '/framework_temp/{{ ssl_certificate_key_filepath }}') }}"
+    dest: "{{ work_dir }}/{{ ssl_certificate_key_filepath }}"
+  when: deploy_type == "production"
+
+- name: Save production {{ app }} ssl certificate file
+  copy:
+    content: "{{ lookup('file', '/framework_temp/{{ ssl_certificate_value_filepath }}') }}"
+    dest: "{{ work_dir }}/{{ ssl_certificate_value_filepath }}"
+  when: deploy_type == "production"
+
+- name: Fill nginx template and export to {{ work_dir }}
+  template:
+    src: "files/{{ deploy_type }}/nginx.conf.j2"
+    dest: "{{ work_dir }}/nginx.conf"
+    mode: 0644
+
+- name: Create docker volumes for SonarQube artifacts
+  shell: |
+    docker volume create --name sonarqube_data
+    docker volume create --name sonarqube_extensions
+    docker volume create --name sonarqube_logs
+
+- name: Create docker network for communication among the containers
+  shell: docker network create proxy_net
+
+- name: Initialize PostgreSQL instance
+  shell: >
+    docker run -d --net proxy_net --restart always --name {{ postgres_container }}
+    -p {{ postgres_port }}:{{ postgres_port }}
+    -e POSTGRES_USER={{ postgres_user }}
+    -e POSTGRES_PASSWORD={{ postgres_password }}
+    postgres:{{ postgres_version }}
+
+- name: Grant {{ postgres_user }} user privileges to database
+  shell: >
+    sleep 5;
+    docker exec {{ postgres_container }} bash
+    -c "psql -U {{ postgres_user }} -c 'GRANT ALL PRIVILEGES ON DATABASE {{ postgres_user }} to {{ postgres_user }};'"
+
+- name: Initialize SonarQube instance
+  shell: >
+    docker run -d --net proxy_net --restart no --name {{ sonarqube_container }}
+    -p {{ sonarqube_port }}:{{ sonarqube_port }}
+    -e SONAR_JDBC_URL=jdbc:postgresql://{{ postgres_container }}:{{ postgres_port }}/{{ postgres_user }}
+    -e SONAR_JDBC_USERNAME={{ postgres_user }}
+    -e SONAR_JDBC_PASSWORD={{ postgres_password }}
+    -v sonarqube_data:/opt/sonarqube/data
+    -v sonarqube_extensions:/opt/sonarqube/extensions
+    -v sonarqube_logs:/opt/sonarqube/logs
+    sonarqube:{{ sonarqube_version }}
+
+- name: Initialize Nginx reverse proxy instance
+  shell: >
+    docker run -d --net proxy_net --restart always --name {{ nginx_container }}
+    -p 80:80 -p 443:443
+    -v {{ work_dir }}/nginx.conf:/etc/nginx/conf.d/default.conf
+    -v {{ work_dir }}/{{ ssl_certificate_value_filepath }}:/etc/ssl/certs/{{ app }}.crt
+    -v {{ work_dir }}/{{ ssl_certificate_key_filepath }}:/etc/ssl/private/{{ app }}.key
+    nginx:{{ nginx_version }}
+
+- name: Create sonarqube group to assign to the jar package
+  group:
+    name: sonarqube
+
+- name: Create sonarqube user to assign to the jar package
+  user:
+    name: sonarqube
+    group: sonarqube
+
+- name: Transfer sonarqube prometheus exporter jar package to {{ work_dir }}
+  copy:
+    src: "/framework_temp/{{ sonarqube_prometheus_exporter }}"
+    dest: "{{ work_dir }}/{{ sonarqube_prometheus_exporter }}"
+    owner: sonarqube
+    group: sonarqube
+    mode: "0777"
+
+- name: Copy the jar package into the container at /opt/sonarqube/extensions/plugins
+  shell: docker cp {{ work_dir }}/{{ sonarqube_prometheus_exporter }} {{ sonarqube_container }}:/opt/sonarqube/extensions/plugins
+  
+- name: Restart the SonarQube instance to enable the exporter feature
+  shell: docker restart {{ sonarqube_container }}
+
+- name: Print {{ app }} application host access
+  debug:
+    msg:
+      - "Access SonarQube dashboard at https://{{ ansible_fqdn }}"

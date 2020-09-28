@@ -1,0 +1,39 @@
+---
+
+- name: "Setup Prometheus-replica haproxy.cfg"
+  template:
+    src: prometheus-haproxy.cfg
+    dest: /etc/haproxy/haproxy.cfg
+
+- name: "Setting replica A IP in haproxy.cfg"
+  replace:
+    path: /etc/haproxy/haproxy.cfg
+    regexp: '<Server IP>'
+    replace: "{{ lookup('env', 'replica_a_ip') }}"
+    backup: no
+  when: ansible_default_ipv4.address == lookup('env', 'replica_a_ip')
+
+- name: "Setting replica A FQHN in haproxy.cfg"
+  replace:
+    path: /etc/haproxy/haproxy.cfg
+    regexp: '<Server FQHN>'
+    replace: "{{ lookup('env', 'replica_a_fqhn') }}"
+    backup: no
+  when: ansible_default_ipv4.address == lookup('env', 'replica_a_ip')
+
+- name: "Setting replica B IP in haproxy.cfg"
+  replace:
+    path: /etc/haproxy/haproxy.cfg
+    regexp: '<Server IP>'
+    replace: "{{ lookup('env', 'replica_b_ip') }}"
+    backup: no
+  when: ansible_default_ipv4.address == lookup('env', 'replica_b_ip')
+
+- name: "Setting replica B FQHN in haproxy.cfg"
+  replace:
+    path: /etc/haproxy/haproxy.cfg
+    regexp: '<Server FQHN>'
+    replace: "{{ lookup('env', 'replica_b_fqhn') }}"
+    backup: no
+  when: ansible_default_ipv4.address == lookup('env', 'replica_b_ip')
+    

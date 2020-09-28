@@ -1,0 +1,42 @@
+---
+    
+- name: "Install HA Proxy"
+  apt:
+    name: haproxy
+    update_cache: no
+
+- name: "Generating sha512 password"
+  shell: python3 -c "import crypt; print(crypt.crypt('{{ lookup('env', 'general_password') }}', crypt.mksalt(crypt.METHOD_SHA512)))"
+  register: sha512_password
+
+- name: "Setup Thanos-Query haproxy.cfg"
+  template:
+    src: thanos-haproxy.cfg
+    dest: /etc/haproxy/haproxy.cfg
+  vars:
+  - shapassword: "{{ sha512_password.stdout }}"
+  - thanos_ip: "{{ lookup('env', 'thanos_ui_ip') }}"
+  - thanos_fqhn: "{{ lookup('env', 'thanos_ui_fqhn') }}"
+  tags:
+  - thanos-haproxy
+
+- name: "Setup Prometheus-replica haproxy.cfg"
+  import_tasks: prometheus_haproxy.yml
+  vars:
+  - shapassword: "{{ sha512_password.stdout }}"
+  tags:
+  - prometheus-haproxy
+
+- name: "Create self-signed certificate"
+  import_tasks: selfsigned_cert.yml
+  vars:
+  - crtpath: "/tmp/{{ lookup('env', 'dnsname') }}.crt"
+  - keypath: "/tmp/{{ lookup('env', 'dnsname') }}.key"
+  - csrpath: "/tmp/{{ lookup('env', 'dnsname') }}.csr"
+  - pempath: "/etc/ssl/private/{{ lookup('env', 'dnsname') }}.pem"
+
+- name: "Restart the haproxy service"
+  service:
+    name: haproxy
+    state: restarted
+    enabled: yes

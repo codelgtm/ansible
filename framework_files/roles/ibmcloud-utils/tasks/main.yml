@@ -1,0 +1,21 @@
+---
+
+- name: Install ibmcloud and bx tool
+  raw: curl -fsSL https://clis.ng.bluemix.net/install/linux | sh
+
+- name: Install container-registry plugin
+  become_user: "{{ ops_user }}"
+  raw: bx plugin install container-registry -f
+  
+- name: Install container-service plugin
+  become_user: "{{ ops_user }}"
+  raw: bx plugin install container-service -f
+  
+- name: Download cf tool
+  raw: wget -O /tmp/cf-cli_amd64.deb -nv "https://cli.run.pivotal.io/stable?release=debian64&source=github"
+
+- name: Install cf tool
+  raw: dpkg --install /tmp/cf-cli_amd64.deb
+  
+- name: Remove cf tool installer
+  raw: rm /tmp/cf-cli_amd64.deb
