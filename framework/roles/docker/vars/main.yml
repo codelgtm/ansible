@@ -1,3 +1,0 @@
-docker_repo_gpg_key: https://download.docker.com/linux/ubuntu/gpg
-docker_reps: deb [arch=amd64] https://download.docker.com/linux/ubuntu bionic stable
-docker_pkg: docker-ce

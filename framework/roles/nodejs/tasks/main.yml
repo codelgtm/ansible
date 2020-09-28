@@ -1,4 +1,0 @@
----
-
-- name: Install nodejs v7.10.1
-  raw: wget https://nodejs.org/download/release/v7.10.1/node-v7.10.1-linux-x64.tar.gz -P /tmp; tar -xvf /tmp/node-v7.10.1-linux-x64.tar.gz -C /tmp; cp -rf /tmp/node-v7.10.1-linux-x64/* /usr/local; rm -rf /tmp/node-v7.10.1-linux-x64; rm -rf /tmp/node-v7.10.1-linux-x64.tar.gz
